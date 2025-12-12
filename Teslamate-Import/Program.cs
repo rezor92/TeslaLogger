@@ -50,6 +50,10 @@ namespace Teslamate_Import
                 AlterTables();
 
                 firstTeslaloggerData = GetFirstTeslaloggerData();
+                if (firstTeslaloggerData.Kind == DateTimeKind.Unspecified)
+                {
+                    firstTeslaloggerData = DateTime.SpecifyKind(firstTeslaloggerData, DateTimeKind.Local);
+                }
                 Tools.Log(0, "First Teslalogger Data: " + firstTeslaloggerData.ToString());
 
                 if (importAll || importModes.Contains("--positions"))
@@ -147,8 +151,8 @@ namespace Teslamate_Import
                                         break;
                                     }
 
-                                    cmdTL.Parameters.AddWithValue("@StartDate", dr["start_date"]);
-                                    cmdTL.Parameters.AddWithValue("@EndDate", dr["end_date"]);
+                                    cmdTL.Parameters.AddWithValue("@StartDate", Date.ToLocalTime());
+                                    cmdTL.Parameters.AddWithValue("@EndDate", ((DateTime)dr["end_date"]).ToLocalTime());
                                     cmdTL.Parameters.AddWithValue("@outside_temp_avg", dr["outside_temp_avg"]);
                                     cmdTL.Parameters.AddWithValue("@speed_max", dr["speed_max"]);
                                     cmdTL.Parameters.AddWithValue("@power_max", dr["power_max"]);
@@ -216,7 +220,7 @@ namespace Teslamate_Import
                                 using (var cmdTL = new MySqlCommand(@"INSERT INTO car_version (StartDate, version, import, CarID) 
                                 VALUES(@StartDate, @version, 3, @CarID);", conTL))
                                 {
-                                    cmdTL.Parameters.AddWithValue("@StartDate", dr["start_date"]);
+                                    cmdTL.Parameters.AddWithValue("@StartDate", Date.ToLocalTime());
                                     cmdTL.Parameters.AddWithValue("@version", dr["version"]);
                                     cmdTL.Parameters.AddWithValue("@CarID", dr["car_id"]);
                                     cmdTL.ExecuteNonQuery();
@@ -270,8 +274,9 @@ namespace Teslamate_Import
                                         break;
                                     }
                                     
-                                    cmdTL.Parameters.AddWithValue("@StartDate", dr["start_date"]);
-                                    cmdTL.Parameters.AddWithValue("@EndDate", dr["end_date"]);
+                                    cmdTL.Parameters.AddWithValue("@StartDate", Date.ToLocalTime());
+                                    object endDateObj = dr["end_date"];
+                                    cmdTL.Parameters.AddWithValue("@EndDate", endDateObj is DateTime ? ((DateTime)endDateObj).ToLocalTime() : endDateObj);
                                     cmdTL.Parameters.AddWithValue("@state", dr["state"]);
                                     
                                     int? StartPosId = GetPosId(dr["start_date"] as DateTime?, carid);
@@ -335,7 +340,7 @@ namespace Teslamate_Import
                                     using (var cmdTL = new MySqlCommand(@"INSERT INTO TPMS (CarId, Datum, TireId, Pressure, import) VALUES (@CarId, @Datum, 1, @Pressure, 3) ON DUPLICATE KEY UPDATE Pressure = VALUES(Pressure);", conTL))
                                     {
                                         cmdTL.Parameters.AddWithValue("@CarId", carid);
-                                        cmdTL.Parameters.AddWithValue("@Datum", Date);
+                                        cmdTL.Parameters.AddWithValue("@Datum", Date.ToLocalTime());
                                         cmdTL.Parameters.AddWithValue("@Pressure", dr["tpms_pressure_fl"]);
                                         cmdTL.ExecuteNonQuery();
                                     }
@@ -346,7 +351,7 @@ namespace Teslamate_Import
                                     using (var cmdTL = new MySqlCommand(@"INSERT INTO TPMS (CarId, Datum, TireId, Pressure, import) VALUES (@CarId, @Datum, 2, @Pressure, 3) ON DUPLICATE KEY UPDATE Pressure = VALUES(Pressure);", conTL))
                                     {
                                         cmdTL.Parameters.AddWithValue("@CarId", carid);
-                                        cmdTL.Parameters.AddWithValue("@Datum", Date);
+                                        cmdTL.Parameters.AddWithValue("@Datum", Date.ToLocalTime());
                                         cmdTL.Parameters.AddWithValue("@Pressure", dr["tpms_pressure_fr"]);
                                         cmdTL.ExecuteNonQuery();
                                     }
@@ -357,7 +362,7 @@ namespace Teslamate_Import
                                     using (var cmdTL = new MySqlCommand(@"INSERT INTO TPMS (CarId, Datum, TireId, Pressure, import) VALUES (@CarId, @Datum, 3, @Pressure, 3) ON DUPLICATE KEY UPDATE Pressure = VALUES(Pressure);", conTL))
                                     {
                                         cmdTL.Parameters.AddWithValue("@CarId", carid);
-                                        cmdTL.Parameters.AddWithValue("@Datum", Date);
+                                        cmdTL.Parameters.AddWithValue("@Datum", Date.ToLocalTime());
                                         cmdTL.Parameters.AddWithValue("@Pressure", dr["tpms_pressure_rl"]);
                                         cmdTL.ExecuteNonQuery();
                                     }
@@ -368,7 +373,7 @@ namespace Teslamate_Import
                                     using (var cmdTL = new MySqlCommand(@"INSERT INTO TPMS (CarId, Datum, TireId, Pressure, import) VALUES (@CarId, @Datum, 4, @Pressure, 3) ON DUPLICATE KEY UPDATE Pressure = VALUES(Pressure);", conTL))
                                     {
                                         cmdTL.Parameters.AddWithValue("@CarId", carid);
-                                        cmdTL.Parameters.AddWithValue("@Datum", Date);
+                                        cmdTL.Parameters.AddWithValue("@Datum", Date.ToLocalTime());
                                         cmdTL.Parameters.AddWithValue("@Pressure", dr["tpms_pressure_rr"]);
                                         cmdTL.ExecuteNonQuery();
                                     }
@@ -439,8 +444,8 @@ namespace Teslamate_Import
                                         break;
                                     }
 
-                                    cmdTL.Parameters.AddWithValue("@StartDate", dr["start_date"]);
-                                    cmdTL.Parameters.AddWithValue("@EndDate", dr["end_date"]);
+                                    cmdTL.Parameters.AddWithValue("@StartDate", Date.ToLocalTime());
+                                    cmdTL.Parameters.AddWithValue("@EndDate", ((DateTime)dr["end_date"]).ToLocalTime());
                                     cmdTL.Parameters.AddWithValue("@UnplugDate", DBNull.Value);
 
                                     cmdTL.Parameters.AddWithValue("@Pos", GetPosId(dr["start_date"] as DateTime?, carid));
@@ -587,7 +592,7 @@ namespace Teslamate_Import
 
                 using (var cmd = new MySqlCommand("Select id from charging where Datum >= @datetime and carid=@carid limit 1", conTL))
                 {
-                    cmd.Parameters.AddWithValue("@datetime", date);
+                    cmd.Parameters.AddWithValue("@datetime", date.Value.ToLocalTime());
                     cmd.Parameters.AddWithValue("@carid", carid);
                     int? id = cmd.ExecuteScalar() as int?;
 
@@ -607,7 +612,7 @@ namespace Teslamate_Import
 
                 using (var cmd = new MySqlCommand("Select id from charging where Datum <= @datetime and carid=@carid order by id desc limit 1", conTL))
                 {
-                    cmd.Parameters.AddWithValue("@datetime", date);
+                    cmd.Parameters.AddWithValue("@datetime", date.Value.ToLocalTime());
                     cmd.Parameters.AddWithValue("@carid", carid);
                     int? id = cmd.ExecuteScalar() as int?;
 
@@ -626,15 +631,14 @@ namespace Teslamate_Import
             {
                 conTL.Open();
 
-                using (var cmd = new MySqlCommand("Select id from pos where Datum >= @datetime and carid=@carid limit 1", conTL))
-                {
-                    cmd.Parameters.AddWithValue("@datetime", datetime);
-                    cmd.Parameters.AddWithValue("@carid", carid);
-                    int? id = cmd.ExecuteScalar() as int?;
-
-                    return id;
-                }
-            }
+                        using (var cmd = new MySqlCommand("Select id from pos where Datum >= @datetime and carid=@carid limit 1", conTL))
+                        {
+                            cmd.Parameters.AddWithValue("@datetime", datetime.Value.ToLocalTime());
+                            cmd.Parameters.AddWithValue("@carid", carid);
+                            int? id = cmd.ExecuteScalar() as int?;
+                
+                            return id;
+                        }            }
         }
 
         private static void CopyCharging()
@@ -675,7 +679,7 @@ namespace Teslamate_Import
                                     cmdTL.Parameters.AddWithValue("@battery_level", dr["battery_level"]);
                                     cmdTL.Parameters.AddWithValue("@charge_energy_added", dr["charge_energy_added"]);
                                     cmdTL.Parameters.AddWithValue("@charger_power", dr["charger_power"]);
-                                    cmdTL.Parameters.AddWithValue("@Datum", dr["date"]);
+                                    cmdTL.Parameters.AddWithValue("@Datum", Date.ToLocalTime());
                                     cmdTL.Parameters.AddWithValue("@ideal_battery_range_km", dr["ideal_battery_range_km"]);
                                     cmdTL.Parameters.AddWithValue("@charger_voltage", dr["charger_voltage"]);
                                     cmdTL.Parameters.AddWithValue("@charger_phases", dr["charger_phases"]);
@@ -743,7 +747,7 @@ namespace Teslamate_Import
                                 using (var cmdTL = new MySqlCommand(@"INSERT INTO pos (Datum, lat, lng, speed, power, odometer, ideal_battery_range_km, outside_temp, altitude, battery_level, inside_temp, battery_heater, import, battery_range_km, CarID, address)
                                 VALUES(@Datum, @lat, @lng, @speed, @power, @odometer, @ideal_battery_range_km, @outside_temp, @altitude, @battery_level, @inside_temp, @battery_heater, @import, @battery_range_km, @CarID, '');", conTL))
                                 {
-                                    cmdTL.Parameters.AddWithValue("@Datum", dr["Date"]);
+                                    cmdTL.Parameters.AddWithValue("@Datum", Date.ToLocalTime());
                                     cmdTL.Parameters.AddWithValue("@lat", dr["latitude"]);
                                     cmdTL.Parameters.AddWithValue("@lng", dr["longitude"]);
                                     cmdTL.Parameters.AddWithValue("@speed", dr["speed"]);
